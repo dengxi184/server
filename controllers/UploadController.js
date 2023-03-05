@@ -6,8 +6,24 @@ const rimraf = require('rimraf')
 
 const File = require('../models/fileModel')
 
-exports.getFileList = [
+exports.getFileByHash = [
   async ( req, res ) => {
+    const { fileHash, fileName } = req.query
+    const file = await File.findOne({ fileHash })
+    const dir = `static/temporary/${fileName}`
+    if( !file && !fs.existsSync(dir) ) {
+      res.send({msg: '该文件服务器没有上传记录', status: 1, sliceIndex: []})
+    } else if( file ) {
+      res.send({msg: '服务器已存在该文件', status: 3, sliceIndex: []})
+    } else {
+      const hashList = fs.readdirSync(dir)
+      res.send({msg: '部分分片上传的文件，是否要覆盖上传', status: 1, sliceIndex: hashList})
+    }
+  }
+]
+
+exports.getFileList = [
+  async ( _, res ) => {
     const uploadedFileList = await File.find()
     res.send(uploadedFileList)
   }
@@ -16,9 +32,9 @@ exports.getFileList = [
 exports.deleteFile = [
     async ( req, res ) => {
       const { fileHash } = req.query
-      const file  = await File.findOne((fileHash))
+      const file  = await File.findOne({ fileHash })
       if( file ) {
-        await File.deleteOne({fileHash})
+        await File.deleteOne({ fileHash })
         await rimraf(`static/files/${file.fileName}`)
         res.send({msg: '删除成功！'})
       } else {
@@ -32,11 +48,11 @@ exports.upload = [
   async( req, res ) => {
     const form = new multiparty.Form();
     form.parse(req, function(err, fields, files) {
-      let fileName = fields.fileName[0]
-      let hash = fields.hash[0]
-      let chunk = files.chunk[0]
-      let dir = `static/temporary/${fileName}`
-      // console.log(fileName, hash, chunk)
+      if( err ) return 
+      const fileName = fields.fileName[0]
+      const hash = fields.hash[0]
+      const chunk = files.chunk[0]
+      const dir = `static/temporary/${fileName}`
       try {
         if (!fs.existsSync(dir)) fs.mkdirSync(dir)
         const buffer = fs.readFileSync(chunk.path)
@@ -45,7 +61,6 @@ exports.upload = [
         ws.close()
         res.send(`${fileName}-${hash} 切片上传成功`)
       } catch (error) {
-        console.error(error)
         res.status(500).send(`${fileName}-${hash} 切片上传失败`)
       }
     })

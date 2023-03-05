@@ -52,31 +52,35 @@ exports.login = [
   body("account").escape(),
   body("password").escape(),
   async ( req, res ) => {
-    const user = await User.findOne({
-      account: req.body.account
-    })
-    if(!user){
-      return res.status(422).send({
-        message: '用户名不存在！'
-      });//客户端提交数据有问题
-    }
-    const isPasswordValid = require('bcrypt').compareSync(
-      req.body.password,
-      user.password
-    )
-    if (!isPasswordValid) {
-      return res.status(422).send({
-        message: '密码无效'
+    try {
+      const user = await User.findOne({
+        account: req.body.account
       })
-    };
-    //生成token
-    const token = jwt.sign({
-      id: String(user._id),//密码不要放进来，放一个唯一的东西就可以了
-    }, SECRET);
-    res.send({
-      id: user._id,
-      token
-    })
+      if(!user){
+        return res.status(422).send({
+          message: '用户名不存在！'
+        });//客户端提交数据有问题
+      }
+      const isPasswordValid = require('bcrypt').compareSync(
+        req.body.password,
+        user.password
+      )
+      if (!isPasswordValid) {
+        return res.status(422).send({
+          message: '密码无效'
+        })
+      };
+      //生成token
+      const token = jwt.sign({
+        id: String(user._id),//密码不要放进来，放一个唯一的东西就可以了
+      }, SECRET);
+      res.send({
+        id: user._id,
+        token
+      })
+    } catch (err) {
+      console.log(err)
+    }
   }
 ]
 

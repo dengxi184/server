@@ -6,10 +6,17 @@ const MONGODB_URL = 'mongodb://localhost:27017/express-micro' //process.env.MONG
 const mongoose = require("mongoose");
 
 const app = express()
+
+app.all('*', function (req, res, next) {
+	res.header("Access-Control-Allow-Origin", "*");
+	res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+	res.header("Access-Control-Allow-Headers", "X-Requested-With");
+	res.header('Access-Control-Allow-Headers', ['Content-Type']);
+	next();
+});
+
 app.use(express.json())
 app.use('/static',express.static(path.join(__dirname, 'static')))
-// 静态文件托管
-//app.use(express.static(path.join(__dirname, './dist')))
 app.use("/api", apiRouter)
 
 mongoose.connect(MONGODB_URL, { useNewUrlParser: true, useUnifiedTopology: true })
